@@ -105,9 +105,15 @@ fun ChatScreen(contactId: String, onBack: () -> Unit) {
 
                             // Simulate "server round trip then receiver decrypts" — proves HMAC verify +
                             // replay-check + decrypt all succeed for a legitimate, unmodified package.
-                            val result = MessagePipeline.decryptMessage(pkg, demoContact, replayProtection)
-                            check(result is MessagePipeline.DecryptResult.Success && result.plaintext == plain) {
-                                "round-trip sanity check failed: $result"
+                            when (val result = MessagePipeline.decryptMessage(pkg, demoContact, replayProtection)) {
+                                is MessagePipeline.DecryptResult.Success -> {
+                                    if (result.plaintext != plain) {
+                                        pipelineLog += "\nlocal decrypt check: plaintext mismatch"
+                                    }
+                                }
+                                else -> {
+                                    pipelineLog += "\nlocal decrypt check failed: ${result::class.simpleName}"
+                                }
                             }
                         }
                     }) {

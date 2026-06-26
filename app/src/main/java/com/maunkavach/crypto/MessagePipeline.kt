@@ -94,8 +94,10 @@ object MessagePipeline {
         if (replayCheck != ReplayProtection.Result.Accepted) return DecryptResult.ReplayRejected
 
         return try {
+            // The package was encrypted with the sender-side message direction. The receiver
+            // must derive the same wire key; using local RECEIVED here creates a different AES key.
             val ephemeralKey = EphemeralKeyDerivation.derive(
-                contact.masterKey().encoded, pkg.counter, nonce, DirectionFlag.RECEIVED, CONTEXT_LABEL
+                contact.masterKey().encoded, pkg.counter, nonce, DirectionFlag.SENT, CONTEXT_LABEL
             )
             val cipher = Cipher.getInstance(CryptoManager.AES_MODE)
             cipher.init(Cipher.DECRYPT_MODE, ephemeralKey, GCMParameterSpec(GCM_TAG_BITS, nonce))

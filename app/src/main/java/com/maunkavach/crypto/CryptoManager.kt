@@ -1,5 +1,6 @@
 package com.maunkavach.crypto
 
+import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import java.security.KeyStore
@@ -45,10 +46,15 @@ object CryptoManager {
             .setUserAuthenticationRequired(requireBiometric)
             .apply {
                 if (requireBiometric) {
-                    setUserAuthenticationParameters(
-                        0, // 0 = require auth on every use (no grace timeout)
-                        KeyProperties.AUTH_BIOMETRIC_STRONG or KeyProperties.AUTH_DEVICE_CREDENTIAL
-                    )
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        setUserAuthenticationParameters(
+                            0, // 0 = require auth on every use (no grace timeout)
+                            KeyProperties.AUTH_BIOMETRIC_STRONG or KeyProperties.AUTH_DEVICE_CREDENTIAL
+                        )
+                    } else {
+                        @Suppress("DEPRECATION")
+                        setUserAuthenticationValidityDurationSeconds(-1)
+                    }
                 }
             }
             .setRandomizedEncryptionRequired(true)

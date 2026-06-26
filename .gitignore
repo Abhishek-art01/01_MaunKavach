@@ -3,10 +3,12 @@ backend/node_modules/
 dist/
 build/
 .gradle/
+.idea/
 
 .env
 .env.*
 !.env.example
+local.properties
 
 npm-debug.log*
 *.log

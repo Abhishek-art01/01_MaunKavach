@@ -11,7 +11,7 @@ import javax.net.ssl.HttpsURLConnection
 data class AuthSession(
     val token: String,
     val username: String,
-    val userId: Int
+    val userId: String
 )
 
 data class ServerMessageRow(
@@ -66,7 +66,7 @@ object ApiClient {
         return AuthSession(
             token = response.getString("token"),
             username = response.getString("username"),
-            userId = response.getInt("userId")
+            userId = response.getString("userId")
         )
     }
 

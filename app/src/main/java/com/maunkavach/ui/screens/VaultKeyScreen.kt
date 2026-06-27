@@ -14,11 +14,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
 import com.maunkavach.crypto.ContactKeyBundle
-import com.maunkavach.crypto.KeyExpiry
 import com.maunkavach.crypto.VaultKeyManager
 import com.maunkavach.security.BiometricHelper
-
-private val demoContacts = listOf("alice", "bob", "carol")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,20 +32,12 @@ fun VaultKeyScreen(activity: FragmentActivity, onOpenContactKeyMgmt: (String) ->
                 activity,
                 onSuccess = {
                     unlocked = true
-                    demoContacts.forEach { id ->
-                        if (vaultKeyManager.getContactKey(id) == null) {
-                            vaultKeyManager.generateContactKeyAuto(id, KeyExpiry.THIRTY_DAYS)
-                        }
-                    }
                     contactKeys.value = vaultKeyManager.allContacts()
                 },
                 onError = { authError = it }
             )
         } else {
-            // Device-credential-only fallback path would go here (PIN entry UI). Demo unlocks
-            // directly so the screen is viewable on devices/emulators without biometrics set up.
-            unlocked = true
-            contactKeys.value = demoContacts.map { vaultKeyManager.generateContactKeyAuto(it, KeyExpiry.THIRTY_DAYS) }
+            authError = "Biometric or device credential unlock is required to manage Vault Keys."
         }
     }
 
@@ -89,7 +78,7 @@ fun VaultKeyScreen(activity: FragmentActivity, onOpenContactKeyMgmt: (String) ->
                         }
                         items(contactKeys.value) { bundle ->
                             ListItem(
-                                headlineContent = { Text(bundle.contactId.replaceFirstChar { it.uppercase() } + "  (v${bundle.keyVersion})") },
+                                headlineContent = { Text("${bundle.contactId}  (v${bundle.keyVersion})") },
                                 supportingContent = {
                                     Column {
                                         Text("Fingerprint: ${bundle.fingerprint}")
@@ -104,6 +93,15 @@ fun VaultKeyScreen(activity: FragmentActivity, onOpenContactKeyMgmt: (String) ->
                                 modifier = Modifier.clickable { onOpenContactKeyMgmt(bundle.contactId) }
                             )
                             Divider()
+                        }
+                        if (contactKeys.value.isEmpty()) {
+                            item {
+                                Text(
+                                    "No contact keys are stored on this device. Open a real contact from Chats, then create or import that contact's Vault Key.",
+                                    modifier = Modifier.padding(16.dp),
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
                         }
                         item {
                             Spacer(Modifier.height(16.dp))

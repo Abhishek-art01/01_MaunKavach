@@ -78,16 +78,15 @@ wipe, and the root/Frida/debugger detection heuristics actually firing against r
   real guarantee is the Keystore-backed AES-256-GCM + HMAC layer underneath, which holds even
   if every heuristic above it is evaded.
 - **App signature verification** needs your real release-signing cert's SHA-256 fingerprint
-  hardcoded in before it does anything (`DeviceIntegrity.verifySigningCertificate`) — ships as
-  a no-op-until-configured helper, not a default-on check.
-- **QR sharing** renders a visually QR-like block matrix (no third-party QR lib, per spec) —
-  it is not a real scannable ISO/IEC 18004 QR code.
+  passed to `DeviceIntegrity.verifySigningCertificate`. A cert fingerprint is public
+  verification data, but it still must match the keystore used for your release APK.
+- **QR sharing** is disabled in the release UI until a real QR encoder/scanner is configured;
+  manual key entry remains available.
 - **`AutoLockManager`/`FailedAttemptPolicy`** are complete, usable classes but not yet wired
   into `MainActivity`'s lifecycle callbacks or a PIN-entry screen — hook `onAppBackgrounded()`/
   `onScreenOff()` into your Activity's lifecycle and call `FailedAttemptPolicy.recordFailure()`
   from wherever PIN entry happens.
-- **App camouflage**, **fake traffic injection**, and **batch/random-delay sending** (spec
-  sections 7, 8, 20) are documented with `TODO`s in the relevant screens but not implemented —
-  flag if you want these built out next.
+- **App camouflage**, cover traffic, and batch/random-delay sending (spec sections 7, 8, 20)
+  still need full release implementations before they should be enabled.
 
 See `DEPLOY.md` for how to actually get this running against Supabase + Render.

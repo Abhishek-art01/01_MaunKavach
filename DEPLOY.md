@@ -44,21 +44,25 @@ Save this — it's `JWT_SECRET`.
 Render will give you a URL like `https://maunkavach-backend.onrender.com`.
 
 > Free-tier note: Render's free web services spin down after ~15 min idle and take a few
-> seconds to wake on the next request — fine for a demo/early users, not for "instant message
-> delivery" expectations. Paid tier removes this once you're ready.
+> seconds to wake on the next request. Paid tier removes this once you're ready for stricter
+> delivery expectations.
 
 ## 4. Point the Android app at it
 
-- `ApiClient.baseUrl = "https://maunkavach-backend.onrender.com"`
-- `NativeWebSocketClient` → host = `maunkavach-backend.onrender.com`, port 443, path `/ws`,
-  and append `?token=<jwt>` to the path after login. (The hand-rolled native WebSocket client
-  in the scaffold is minimal — for production reliability against Render's proxy, consider
-  using `androidx.compose` + the platform's `java.net.http` or, since you've already dropped
-  the native-only constraint for the backend, you could also just point the Android client at
-  a maintained WS client. Flag if you want me to swap that piece too.)
-- Generate the real certificate pin for `network_security_config.xml`:
+Set the Android release server URL and signing credentials outside source control, using
+`local.properties`, Gradle properties, or environment variables:
+
+```properties
+MAUNKAVACH_SERVER_BASE_URL=https://<your-real-backend-host>
+MAUNKAVACH_RELEASE_STORE_FILE=/absolute/path/to/release.keystore
+MAUNKAVACH_RELEASE_STORE_PASSWORD=<keystore-password>
+MAUNKAVACH_RELEASE_KEY_ALIAS=<key-alias>
+MAUNKAVACH_RELEASE_KEY_PASSWORD=<key-password>
+```
+
+Generate the real certificate pin for `network_security_config.xml`:
   ```bash
-  echo | openssl s_client -connect maunkavach-backend.onrender.com:443 2>/dev/null | \
+  echo | openssl s_client -connect <your-real-backend-host>:443 2>/dev/null | \
     openssl x509 -pubkey -noout | openssl pkey -pubin -outform der | \
     openssl dgst -sha256 -binary | openssl enc -base64
   ```
@@ -66,13 +70,13 @@ Render will give you a URL like `https://maunkavach-backend.onrender.com`.
 ## 5. Verify it's actually live
 
 ```bash
-curl https://maunkavach-backend.onrender.com/health
-curl -X POST https://maunkavach-backend.onrender.com/auth/register \
-  -H "Content-Type: application/json" -d '{"username":"alice","password":"testpass123"}'
-curl -X POST https://maunkavach-backend.onrender.com/auth/login \
-  -H "Content-Type: application/json" -d '{"username":"alice","password":"testpass123"}'
+curl "$MAUNKAVACH_SERVER_BASE_URL/health"
+curl -X POST "$MAUNKAVACH_SERVER_BASE_URL/auth/register" \
+  -H "Content-Type: application/json" -d '{"username":"<real-user>","password":"<real-password>"}'
+curl -X POST "$MAUNKAVACH_SERVER_BASE_URL/auth/login" \
+  -H "Content-Type: application/json" -d '{"username":"<real-user>","password":"<real-password>"}'
 # copy the returned token, then:
-curl https://maunkavach-backend.onrender.com/messages \
+curl "$MAUNKAVACH_SERVER_BASE_URL/messages" \
   -H "Authorization: Bearer <token>"
 ```
 

@@ -9,6 +9,9 @@ const btnMuted =
   `${btnBase} bg-muted/10 text-muted-foreground border-border cursor-default`;
 
 export default function Download() {
+  const androidApkUrl =
+    "https://github.com/Abhishek-art01/01_MaunKavach/releases/download/v1.0.0/app-release.apk";
+
   return (
     <section id="download" className="py-32 bg-background border-t border-border">
       <div className="container mx-auto px-6">
@@ -27,9 +30,9 @@ export default function Download() {
           <div className="flex flex-col items-center p-10 border border-border bg-card w-full sm:w-72">
             <SiAndroid className="w-12 h-12 mb-6 text-primary" />
             <h3 className="text-xl font-bold mb-2 uppercase tracking-wider">Android</h3>
-            <p className="text-sm text-muted-foreground font-mono mb-6">v1.4.2</p>
+            <p className="text-sm text-muted-foreground font-mono mb-6">v1.0.0</p>
             <div className="flex gap-2 w-full mt-auto">
-              <a href="#download-android-apk" className={btnPrimary}>
+              <a href={androidApkUrl} className={btnPrimary}>
                 Download APK
               </a>
               <a href="#download-android-play" className={btnPrimary}>

@@ -41,9 +41,9 @@ fun SecuritySettingsScreen(onBack: () -> Unit, onOpenDashboard: () -> Unit = {})
             Spacer(Modifier.height(16.dp))
 
             Text("Device integrity", style = MaterialTheme.typography.titleSmall)
-            Text("Rooted: ${if (rooted) "⚠ Yes" else "No"}")
-            Text("Debugger attached: ${if (debugger) "⚠ Yes" else "No"}")
-            Text("Emulator: ${if (emulator) "Yes (expected in demo)" else "No"}")
+            Text("Rooted: ${if (rooted) "Yes" else "No"}")
+            Text("Debugger attached: ${if (debugger) "Yes" else "No"}")
+            Text("Emulator: ${if (emulator) "Yes" else "No"}")
             Text(
                 "These are advisory signals shown to the user, not a hard security boundary.",
                 style = MaterialTheme.typography.labelSmall
@@ -59,8 +59,7 @@ fun SecuritySettingsScreen(onBack: () -> Unit, onOpenDashboard: () -> Unit = {})
             }
             if (appCamouflage) {
                 Text(
-                    "TODO (real impl): swap <activity-alias> icon/label via PackageManager.setComponentEnabledSetting; " +
-                        "demo only toggles this in-memory flag.",
+                    "App camouflage requires release launcher aliases configured in the manifest before it can be enabled.",
                     style = MaterialTheme.typography.labelSmall
                 )
             }
@@ -69,7 +68,7 @@ fun SecuritySettingsScreen(onBack: () -> Unit, onOpenDashboard: () -> Unit = {})
             Text("Panic PIN / decoy vault", style = MaterialTheme.typography.titleSmall)
             Text(
                 "Entering this PIN instead of your real PIN opens a harmless decoy Vault Key " +
-                    "section with fake contacts, instead of your real keys.",
+                    "section instead of your real keys.",
                 style = MaterialTheme.typography.labelSmall
             )
             OutlinedTextField(

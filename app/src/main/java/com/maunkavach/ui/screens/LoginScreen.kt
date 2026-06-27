@@ -9,17 +9,41 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import com.maunkavach.network.ApiClient
+import com.maunkavach.network.AuthSession
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
-/**
- * Local-only auth stub for the demo: in a real deployment this would hit the backend's
- * register/login endpoint over TLS (ApiClient), with the server storing only a salted
- * password hash — never anything related to the Vault Key, which is generated/stored
- * entirely on-device after login and never derived from the account password.
- */
 @Composable
-fun LoginScreen(onLoggedIn: () -> Unit) {
+fun LoginScreen(onLoggedIn: (AuthSession) -> Unit) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var busy by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+
+    fun submit(register: Boolean) {
+        if (username.isBlank() || password.isBlank()) {
+            error = "Username and password are required."
+            return
+        }
+        busy = true
+        error = null
+        scope.launch {
+            runCatching {
+                withContext(Dispatchers.IO) {
+                    if (register) ApiClient.register(username.trim(), password) else ApiClient.login(username.trim(), password)
+                }
+            }.onSuccess { session ->
+                password = ""
+                onLoggedIn(session)
+            }.onFailure { throwable ->
+                error = throwable.message ?: "Authentication failed."
+            }
+            busy = false
+        }
+    }
 
     Column(
         modifier = Modifier.fillMaxSize().padding(32.dp),
@@ -42,12 +66,24 @@ fun LoginScreen(onLoggedIn: () -> Unit) {
             label = { Text("Password") }, visualTransformation = PasswordVisualTransformation(),
             modifier = Modifier.fillMaxWidth()
         )
+        error?.let {
+            Spacer(Modifier.height(8.dp))
+            Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+        }
         Spacer(Modifier.height(24.dp))
-        Button(onClick = onLoggedIn, modifier = Modifier.fillMaxWidth()) {
-            Text("Login")
+        Button(
+            onClick = { submit(register = false) },
+            enabled = !busy,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(if (busy) "Please wait..." else "Login")
         }
         Spacer(Modifier.height(8.dp))
-        OutlinedButton(onClick = onLoggedIn, modifier = Modifier.fillMaxWidth()) {
+        OutlinedButton(
+            onClick = { submit(register = true) },
+            enabled = !busy,
+            modifier = Modifier.fillMaxWidth()
+        ) {
             Text("Register")
         }
 

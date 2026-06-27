@@ -1,11 +1,12 @@
 package com.maunkavach.navigation
 
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.fragment.app.FragmentActivity
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.maunkavach.network.AuthSession
 import com.maunkavach.ui.screens.*
 
 object Routes {
@@ -27,25 +28,53 @@ object Routes {
 @Composable
 fun MaunKavachNavHost(activity: FragmentActivity) {
     val navController: NavHostController = rememberNavController()
+    var session by remember { mutableStateOf<AuthSession?>(null) }
+    val setSession: (AuthSession?) -> Unit = { session = it }
 
     NavHost(navController = navController, startDestination = Routes.LOGIN) {
 
         composable(Routes.LOGIN) {
-            LoginScreen(onLoggedIn = { navController.navigate(Routes.CHAT_LIST) })
+            LoginScreen(onLoggedIn = {
+                setSession(it)
+                navController.navigate(Routes.CHAT_LIST) {
+                    popUpTo(Routes.LOGIN) { inclusive = true }
+                }
+            })
         }
 
         composable(Routes.CHAT_LIST) {
-            ChatListScreen(
-                onOpenChat = { contactId -> navController.navigate(Routes.chat(contactId)) },
-                onOpenSettings = { navController.navigate(Routes.SETTINGS) }
-            )
+            val activeSession = session
+            if (activeSession == null) {
+                LoginScreen(onLoggedIn = {
+                    setSession(it)
+                    navController.navigate(Routes.CHAT_LIST) { popUpTo(Routes.LOGIN) { inclusive = true } }
+                })
+            } else {
+                ChatListScreen(
+                    onOpenChat = { contactId -> navController.navigate(Routes.chat(contactId)) },
+                    onOpenSettings = { navController.navigate(Routes.SETTINGS) },
+                    onOpenContactKeyMgmt = { contactId -> navController.navigate(Routes.contactKeyMgmt(contactId)) },
+                    username = activeSession.username
+                )
+            }
         }
 
         composable(Routes.CHAT) { backStackEntry ->
-            val contactId = backStackEntry.arguments?.let {
-                navController.currentBackStackEntry?.arguments?.getString("contactId")
-            } ?: backStackEntry.savedStateHandle.get<String>("contactId") ?: ""
-            ChatScreen(contactId = contactId, onBack = { navController.popBackStack() })
+            val activeSession = session
+            val contactId = backStackEntry.arguments?.getString("contactId") ?: ""
+            if (activeSession == null) {
+                LoginScreen(onLoggedIn = {
+                    setSession(it)
+                    navController.navigate(Routes.CHAT_LIST) { popUpTo(Routes.LOGIN) { inclusive = true } }
+                })
+            } else {
+                ChatScreen(
+                    contactId = contactId,
+                    session = activeSession,
+                    onOpenContactKeyMgmt = { navController.navigate(Routes.contactKeyMgmt(contactId)) },
+                    onBack = { navController.popBackStack() }
+                )
+            }
         }
 
         composable(Routes.SETTINGS) {
@@ -65,7 +94,7 @@ fun MaunKavachNavHost(activity: FragmentActivity) {
         }
 
         composable(Routes.CONTACT_KEY_MANAGEMENT) { backStackEntry ->
-            val contactId = backStackEntry.savedStateHandle.get<String>("contactId") ?: "demo_contact"
+            val contactId = backStackEntry.arguments?.getString("contactId") ?: ""
             ContactKeyManagementScreen(
                 contactId = contactId,
                 onOpenQr = { navController.navigate(Routes.qrSharing(contactId)) },
@@ -74,7 +103,7 @@ fun MaunKavachNavHost(activity: FragmentActivity) {
         }
 
         composable(Routes.QR_SHARING) { backStackEntry ->
-            val contactId = backStackEntry.savedStateHandle.get<String>("contactId") ?: "demo_contact"
+            val contactId = backStackEntry.arguments?.getString("contactId") ?: ""
             QrKeySharingScreen(contactId = contactId, onBack = { navController.popBackStack() })
         }
 

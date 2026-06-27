@@ -11,8 +11,8 @@ import javax.net.ssl.SSLSocketFactory
 /**
  * A minimal native WebSocket client built directly on java.net sockets + the RFC6455
  * handshake, since the spec disallows third-party networking/WS libraries (no OkHttp WS, no
- * Java-WebSocket, no Socket.IO). Good enough for the realtime chat demo; production use would
- * want more complete frame handling (fragmentation, ping/pong, close codes).
+ * Java-WebSocket, no Socket.IO). It handles the small encrypted JSON frames used by the
+ * backend push channel; large binary payloads are transferred through the HTTPS file API.
  *
  * As with [ApiClient], every payload pushed through here is pre-encrypted ciphertext —
  * this class is transport-only and never touches plaintext or keys.
@@ -93,7 +93,16 @@ class NativeWebSocketClient(private val host: String, private val port: Int, pri
         var len = b1 and 0x7F
         if (len == 126) {
             len = (input.read() shl 8) or input.read()
-        } // 64-bit length frames omitted for brevity in this demo client
+        } else if (len == 127) {
+            var longLen = 0L
+            repeat(8) {
+                val next = input.read()
+                if (next == -1) return null
+                longLen = (longLen shl 8) or next.toLong()
+            }
+            if (longLen > Int.MAX_VALUE) throw IllegalArgumentException("WebSocket frame too large")
+            len = longLen.toInt()
+        }
         val payload = ByteArray(len)
         var read = 0
         while (read < len) {

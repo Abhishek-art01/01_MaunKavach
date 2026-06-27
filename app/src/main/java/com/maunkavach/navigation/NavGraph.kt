@@ -19,6 +19,8 @@ object Routes {
     const val VAULT_KEY = "vault_key"
     const val CONTACT_KEY_MANAGEMENT = "contact_key_mgmt/{contactId}"
     const val QR_SHARING = "qr_sharing/{contactId}"
+    const val SCAN_CONTACT_QR = "scan_contact_qr"
+    const val GENERATE_CONTACT_QR = "generate_contact_qr"
     const val SECURITY_SETTINGS = "security_settings"
     const val SECURITY_DASHBOARD = "security_dashboard"
 
@@ -86,6 +88,8 @@ fun MaunKavachNavHost(activity: FragmentActivity) {
                     onOpenChat = { contactId -> navController.navigate(Routes.chat(contactId)) },
                     onOpenSettings = { navController.navigate(Routes.SETTINGS) },
                     onOpenContactKeyMgmt = { contactId -> navController.navigate(Routes.contactKeyMgmt(contactId)) },
+                    onScanQr = { navController.navigate(Routes.SCAN_CONTACT_QR) },
+                    onGenerateQr = { navController.navigate(Routes.GENERATE_CONTACT_QR) },
                     username = activeSession.username
                 )
             }
@@ -143,6 +147,34 @@ fun MaunKavachNavHost(activity: FragmentActivity) {
         composable(Routes.QR_SHARING) { backStackEntry ->
             val contactId = backStackEntry.arguments?.getString("contactId") ?: ""
             QrKeySharingScreen(contactId = contactId, onBack = { navController.popBackStack() })
+        }
+
+        composable(Routes.SCAN_CONTACT_QR) {
+            ScanContactQrScreen(
+                activity = activity,
+                onBack = { navController.popBackStack() },
+                onContactReady = { contactId ->
+                    navController.navigate(Routes.chat(contactId)) {
+                        popUpTo(Routes.CHAT_LIST)
+                    }
+                }
+            )
+        }
+
+        composable(Routes.GENERATE_CONTACT_QR) {
+            val activeSession = session
+            if (activeSession == null) {
+                LoginScreen(onLoggedIn = {
+                    setSession(it)
+                    navController.navigate(Routes.GENERATE_CONTACT_QR) { popUpTo(Routes.LOGIN) { inclusive = true } }
+                })
+            } else {
+                GenerateContactQrScreen(
+                    activity = activity,
+                    username = activeSession.username,
+                    onBack = { navController.popBackStack() }
+                )
+            }
         }
 
         composable(Routes.SECURITY_SETTINGS) {

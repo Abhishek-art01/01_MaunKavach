@@ -64,6 +64,40 @@ class MessageDao(private val dbHelper: MaunKavachDbHelper) {
         return rows
     }
 
+    fun latestRowsByContact(): Map<String, ChatPreviewRow> {
+        val rows = mutableMapOf<String, ChatPreviewRow>()
+        dbHelper.readableDatabase.rawQuery(
+            """
+            SELECT m.contact_id, m.direction, m.timestamp, m.delivery_status, m.is_file,
+                   (SELECT COUNT(*) FROM messages u
+                    WHERE u.contact_id = m.contact_id
+                      AND u.direction = 'RECEIVED'
+                      AND u.delivery_status != 'READ') AS unread_count
+            FROM messages m
+            INNER JOIN (
+                SELECT contact_id, MAX(timestamp) AS max_timestamp
+                FROM messages
+                GROUP BY contact_id
+            ) latest
+            ON latest.contact_id = m.contact_id AND latest.max_timestamp = m.timestamp
+            """.trimIndent(),
+            emptyArray()
+        ).use { cursor ->
+            while (cursor.moveToNext()) {
+                val contactId = cursor.getString(cursor.getColumnIndexOrThrow("contact_id"))
+                rows[contactId] = ChatPreviewRow(
+                    contactId = contactId,
+                    direction = MessageDirection.valueOf(cursor.getString(cursor.getColumnIndexOrThrow("direction"))),
+                    timestampMillis = cursor.getLong(cursor.getColumnIndexOrThrow("timestamp")),
+                    deliveryStatus = cursor.getString(cursor.getColumnIndexOrThrow("delivery_status")),
+                    isFile = cursor.getInt(cursor.getColumnIndexOrThrow("is_file")) == 1,
+                    unreadCount = cursor.getInt(cursor.getColumnIndexOrThrow("unread_count"))
+                )
+            }
+        }
+        return rows
+    }
+
     /** "Delete for both sides" locally — caller separately tells server to purge its row too. */
     fun deleteMessage(messageId: String) {
         dbHelper.writableDatabase.delete("messages", "message_id = ?", arrayOf(messageId))
@@ -101,6 +135,15 @@ class MessageDao(private val dbHelper: MaunKavachDbHelper) {
         dbHelper.writableDatabase.insertWithOnConflict("replay_state", null, values, android.database.sqlite.SQLiteDatabase.CONFLICT_REPLACE)
     }
 }
+
+data class ChatPreviewRow(
+    val contactId: String,
+    val direction: MessageDirection,
+    val timestampMillis: Long,
+    val deliveryStatus: String,
+    val isFile: Boolean,
+    val unreadCount: Int
+)
 
 data class EncryptedMessageRow(
     val pkg: EncryptedMessagePackage,

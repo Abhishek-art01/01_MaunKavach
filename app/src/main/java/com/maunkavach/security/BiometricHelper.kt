@@ -1,10 +1,11 @@
 package com.maunkavach.security
 
+import android.os.Handler
+import android.os.Looper
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import androidx.fragment.app.FragmentActivity
 import java.util.concurrent.Executor
-import java.util.concurrent.Executors
 
 /**
  * Gates the Vault Key section. Required every time per spec ("Requires biometric/PIN every
@@ -13,7 +14,9 @@ import java.util.concurrent.Executors
  */
 object BiometricHelper {
 
-    private val executor: Executor = Executors.newSingleThreadExecutor()
+    private val executor = Executor { command ->
+        Handler(Looper.getMainLooper()).post(command)
+    }
 
     fun canUseBiometrics(activity: FragmentActivity): Boolean {
         val manager = BiometricManager.from(activity)

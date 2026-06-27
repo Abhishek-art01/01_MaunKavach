@@ -79,8 +79,8 @@ android {
         applicationId = "com.maunkavach"
         minSdk = 26
         targetSdk = 34
-        versionCode = 2
-        versionName = "1.0.1"
+        versionCode = 3
+        versionName = "1.0.2"
 
         buildConfigField("String", "SERVER_BASE_URL", quotedBuildConfigString(releaseServerBaseUrl.trimEnd('/')))
     }

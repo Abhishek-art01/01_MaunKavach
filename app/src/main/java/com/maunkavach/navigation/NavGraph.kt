@@ -7,9 +7,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.maunkavach.network.AuthSession
+import com.maunkavach.security.SessionStore
 import com.maunkavach.ui.screens.*
 
 object Routes {
+    const val SESSION_UNLOCK = "session_unlock"
     const val LOGIN = "login"
     const val CHAT_LIST = "chat_list"
     const val CHAT = "chat/{contactId}"
@@ -28,10 +30,40 @@ object Routes {
 @Composable
 fun MaunKavachNavHost(activity: FragmentActivity) {
     val navController: NavHostController = rememberNavController()
+    val sessionStore = remember { SessionStore(activity) }
     var session by remember { mutableStateOf<AuthSession?>(null) }
-    val setSession: (AuthSession?) -> Unit = { session = it }
+    val setSession: (AuthSession?) -> Unit = {
+        session = it
+        if (it == null) sessionStore.clear() else sessionStore.save(it)
+    }
 
-    NavHost(navController = navController, startDestination = Routes.LOGIN) {
+    NavHost(
+        navController = navController,
+        startDestination = if (sessionStore.hasSavedSession()) Routes.SESSION_UNLOCK else Routes.LOGIN
+    ) {
+        composable(Routes.SESSION_UNLOCK) {
+            SessionUnlockScreen(
+                activity = activity,
+                sessionStore = sessionStore,
+                onUnlocked = {
+                    session = it
+                    navController.navigate(Routes.CHAT_LIST) {
+                        popUpTo(Routes.SESSION_UNLOCK) { inclusive = true }
+                    }
+                },
+                onPasswordLogin = {
+                    navController.navigate(Routes.LOGIN) {
+                        popUpTo(Routes.SESSION_UNLOCK) { inclusive = true }
+                    }
+                },
+                onForgetSession = {
+                    setSession(null)
+                    navController.navigate(Routes.LOGIN) {
+                        popUpTo(Routes.SESSION_UNLOCK) { inclusive = true }
+                    }
+                }
+            )
+        }
 
         composable(Routes.LOGIN) {
             LoginScreen(onLoggedIn = {
@@ -81,6 +113,12 @@ fun MaunKavachNavHost(activity: FragmentActivity) {
             SettingsScreen(
                 onOpenVaultKey = { navController.navigate(Routes.VAULT_KEY) },
                 onOpenSecuritySettings = { navController.navigate(Routes.SECURITY_SETTINGS) },
+                onSignOut = {
+                    setSession(null)
+                    navController.navigate(Routes.LOGIN) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
                 onBack = { navController.popBackStack() }
             )
         }

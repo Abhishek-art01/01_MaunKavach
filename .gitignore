@@ -4,6 +4,7 @@ dist/
 build/
 .gradle/
 .idea/
+.antigravitycli/
 
 .env
 .env.*

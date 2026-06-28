@@ -1,6 +1,7 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.compose")
 }
 
 import java.util.Properties
@@ -79,8 +80,8 @@ android {
         applicationId = "com.maunkavach"
         minSdk = 26
         targetSdk = 34
-        versionCode = 4
-        versionName = "1.0.3"
+        versionCode = 5
+        versionName = "1.0.4"
 
         buildConfigField("String", "SERVER_BASE_URL", quotedBuildConfigString(releaseServerBaseUrl.trimEnd('/')))
     }
@@ -108,9 +109,6 @@ android {
         compose = true
         buildConfig = true
     }
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.14"
-    }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -120,7 +118,7 @@ android {
         jvmTarget = "17"
     }
 
-    // No SDKCipher / no third-party encryption libs / no Retrofit / no QR libs.
+    // No SDKCipher / no third-party encryption libs / no Retrofit.
     // allowBackup is disabled per spec (Vault Key data must never be cloud-backed-up).
     packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -143,6 +141,11 @@ dependencies {
     implementation("androidx.fragment:fragment-ktx:1.8.2")
     implementation("androidx.biometric:biometric:1.1.0")
     implementation("androidx.security:security-crypto:1.1.0-alpha06") // EncryptedSharedPreferences wrapper over Keystore
+    implementation("androidx.camera:camera-camera2:1.3.4")
+    implementation("androidx.camera:camera-lifecycle:1.3.4")
+    implementation("androidx.camera:camera-view:1.3.4")
+    implementation("com.google.mlkit:barcode-scanning:17.3.0")
+    implementation("com.google.zxing:core:3.5.3")
     compileOnly("com.google.errorprone:error_prone_annotations:2.28.0")
     compileOnly("com.google.code.findbugs:jsr305:3.0.2")
 

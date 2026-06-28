@@ -150,15 +150,24 @@ fun MaunKavachNavHost(activity: FragmentActivity) {
         }
 
         composable(Routes.SCAN_CONTACT_QR) {
-            ScanContactQrScreen(
-                activity = activity,
-                onBack = { navController.popBackStack() },
-                onContactReady = { contactId ->
-                    navController.navigate(Routes.chat(contactId)) {
-                        popUpTo(Routes.CHAT_LIST)
+            val activeSession = session
+            if (activeSession == null) {
+                LoginScreen(onLoggedIn = {
+                    setSession(it)
+                    navController.navigate(Routes.SCAN_CONTACT_QR) { popUpTo(Routes.LOGIN) { inclusive = true } }
+                })
+            } else {
+                ScanContactQrScreen(
+                    activity = activity,
+                    currentUsername = activeSession.username,
+                    onBack = { navController.popBackStack() },
+                    onContactReady = { contactId ->
+                        navController.navigate(Routes.chat(contactId)) {
+                            popUpTo(Routes.CHAT_LIST)
+                        }
                     }
-                }
-            )
+                )
+            }
         }
 
         composable(Routes.GENERATE_CONTACT_QR) {

@@ -59,12 +59,12 @@ const fakePool = {
       return { rows: [] };
     }
     if (sql.startsWith("insert into messages")) {
-      const [message_id, sender_uuid, receiver_uuid, counter, nonce_base64, encrypted_payload, encrypted_metadata, hmac_base64, key_version, expiry_time] = params;
+      const [message_id, sender_uuid, receiver_uuid, counter, nonce_base64, encrypted_payload, encrypted_metadata, hmac_base64, key_version, delivery_status, expiry_time] = params;
       if (messages.some((m) => m.message_id === message_id)) throw uniqueViolation();
       if (messages.some((m) => m.sender_uuid === sender_uuid && m.receiver_uuid === receiver_uuid && m.counter === counter)) throw uniqueViolation();
       const row = {
         message_id, sender_uuid, receiver_uuid, counter, nonce_base64, encrypted_payload,
-        encrypted_metadata, hmac_base64, key_version, delivery_status: "SENT", expiry_time, created_at: new Date()
+        encrypted_metadata, hmac_base64, key_version, delivery_status, expiry_time, created_at: new Date()
       };
       messages.push(row);
       return { rows: [{ message_id: row.message_id, created_at: row.created_at, delivery_status: row.delivery_status }] };
@@ -76,6 +76,17 @@ const fakePool = {
         (m) => ((m.sender_uuid === a && m.receiver_uuid === b) || (m.sender_uuid === b && m.receiver_uuid === a)) &&
           (!m.expiry_time || new Date(m.expiry_time).getTime() > now)
       );
+      return { rows };
+    }
+    if (sql.startsWith("update messages set delivery_status='READ'")) {
+      const [sender_uuid, receiver_uuid] = params;
+      const rows = [];
+      messages.forEach((m) => {
+        if (m.sender_uuid === sender_uuid && m.receiver_uuid === receiver_uuid && m.delivery_status !== "READ") {
+          m.delivery_status = "READ";
+          rows.push({ message_id: m.message_id, sender_uuid: m.sender_uuid, receiver_uuid: m.receiver_uuid });
+        }
+      });
       return { rows };
     }
     if (sql.startsWith("insert into files")) {

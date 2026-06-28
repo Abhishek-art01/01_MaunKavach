@@ -3,6 +3,7 @@ package com.maunkavach.ui.screens
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,7 +21,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -36,7 +36,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
 import com.maunkavach.crypto.KeyExpiry
@@ -84,13 +83,13 @@ fun GenerateContactQrScreen(activity: FragmentActivity, username: String, onBack
                 .padding(padding)
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(24.dp),
+                .padding(4.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Surface(shape = RoundedCornerShape(28.dp), color = Color.White, tonalElevation = 2.dp) {
+            Surface(shape = RoundedCornerShape(8.dp), color = Color.White, tonalElevation = 2.dp) {
                 Column(
-                    modifier = Modifier.fillMaxWidth().padding(24.dp),
+                    modifier = Modifier.fillMaxWidth().padding(4.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     val qrPayload = payload
@@ -105,23 +104,13 @@ fun GenerateContactQrScreen(activity: FragmentActivity, username: String, onBack
                         return@Column
                     }
                     ContactQrPreview(payload = qrPayload)
-                    Spacer(Modifier.height(20.dp))
+                    Spacer(Modifier.height(6.dp))
                     Text(username, style = MaterialTheme.typography.headlineSmall)
                     Text(
-                        "This QR contains username, chat key, substitution table, and rotation rule. It never includes password, session token, or account secret.",
-                        modifier = Modifier.padding(top = 8.dp),
-                        style = MaterialTheme.typography.bodySmall,
+                        "Full brightness. Keep steady.",
+                        modifier = Modifier.padding(top = 4.dp),
+                        style = MaterialTheme.typography.labelMedium,
                         color = Color(0xFF6B5B80)
-                    )
-                    Spacer(Modifier.height(16.dp))
-                    OutlinedTextField(
-                        value = qrPayload,
-                        onValueChange = { },
-                        readOnly = true,
-                        label = { Text("Contact exchange data") },
-                        modifier = Modifier.fillMaxWidth(),
-                        textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
-                        minLines = 4
                     )
                 }
             }
@@ -134,9 +123,10 @@ private fun ContactQrPreview(payload: String) {
     val modules = remember(payload) { QrCodeEncoder.encode(payload) }
     Canvas(
         modifier = Modifier
-            .size(240.dp)
-            .background(Color.White, RoundedCornerShape(16.dp))
-            .padding(12.dp)
+            .fillMaxWidth()
+            .aspectRatio(1f)
+            .background(Color.White, RoundedCornerShape(4.dp))
+            .padding(2.dp)
     ) {
         val cells = modules.size
         val cell = size.minDimension / cells
@@ -144,9 +134,9 @@ private fun ContactQrPreview(payload: String) {
             for (x in 0 until cells) {
                 if (modules[y][x]) {
                     drawRect(
-                        color = Color(0xFF2E1065),
+                        color = Color.Black,
                         topLeft = Offset(x * cell, y * cell),
-                        size = Size(cell, cell)
+                        size = Size(cell + 0.25f, cell + 0.25f)
                     )
                 }
             }

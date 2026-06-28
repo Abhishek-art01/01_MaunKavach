@@ -65,6 +65,15 @@ function pushToUser(userId, payload) {
   }
 }
 
+function isUserOnline(userId) {
+  const sockets = liveConnections.get(userId);
+  if (!sockets) return false;
+  for (const ws of sockets) {
+    if (ws.readyState === ws.OPEN) return true;
+  }
+  return false;
+}
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
 
@@ -109,17 +118,18 @@ const server = http.createServer(async (req, res) => {
       const expiryTime = body.expiry_seconds ? new Date(Date.now() + body.expiry_seconds * 1000) : null;
 
       let row;
+      const initialStatus = isUserOnline(body.receiver_uuid) ? "DELIVERED" : "SENT";
       try {
         const result = await pool.query(
           `insert into messages
              (message_id, sender_uuid, receiver_uuid, counter, nonce_base64, encrypted_payload,
               encrypted_metadata, hmac_base64, key_version, delivery_status, expiry_time)
-           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,'SENT',$10)
+           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
            returning message_id, created_at, delivery_status`,
           [
             body.message_id, session.username, body.receiver_uuid, body.counter, body.nonce_base64,
             body.encrypted_payload, body.encrypted_metadata || null, body.hmac_base64,
-            body.key_version || 1, expiryTime
+            body.key_version || 1, initialStatus, expiryTime
           ]
         );
         row = result.rows[0];
@@ -141,6 +151,7 @@ const server = http.createServer(async (req, res) => {
         encrypted_metadata: body.encrypted_metadata || null,
         hmac_base64: body.hmac_base64,
         key_version: body.key_version || 1,
+        delivery_status: row.delivery_status,
         created_at: row.created_at
       });
 
@@ -158,6 +169,21 @@ const server = http.createServer(async (req, res) => {
         : `select * from messages where (sender_uuid=$1 or receiver_uuid=$1)
              and (expiry_time is null or expiry_time > now()) order by created_at asc`;
       const result = await pool.query(query, params);
+      if (otherUser) {
+        const readResult = await pool.query(
+          `update messages set delivery_status='READ'
+             where sender_uuid=$1 and receiver_uuid=$2 and delivery_status <> 'READ'
+             returning message_id, sender_uuid, receiver_uuid`,
+          [otherUser, session.username]
+        );
+        if (readResult.rows.length > 0) {
+          pushToUser(otherUser, {
+            type: "read_receipt",
+            reader_uuid: session.username,
+            message_ids: readResult.rows.map((row) => row.message_id)
+          });
+        }
+      }
       return sendJson(res, 200, { rows: result.rows });
     }
 

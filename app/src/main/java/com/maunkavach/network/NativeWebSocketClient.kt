@@ -17,7 +17,12 @@ import javax.net.ssl.SSLSocketFactory
  * As with [ApiClient], every payload pushed through here is pre-encrypted ciphertext —
  * this class is transport-only and never touches plaintext or keys.
  */
-class NativeWebSocketClient(private val host: String, private val port: Int, private val path: String, private val useTls: Boolean = true) {
+class NativeWebSocketClient(
+    private val host: String,
+    private val port: Int,
+    private val path: String,
+    private val useTls: Boolean = true
+) {
 
     private var socket: Socket? = null
     private var output: OutputStream? = null
@@ -34,7 +39,7 @@ class NativeWebSocketClient(private val host: String, private val port: Int, pri
         val key = Base64.getEncoder().encodeToString(ByteArray(16).also { java.security.SecureRandom().nextBytes(it) })
         val handshake = buildString {
             append("GET $path HTTP/1.1\r\n")
-            append("Host: $host\r\n")
+            append("Host: $host:$port\r\n")
             append("Upgrade: websocket\r\n")
             append("Connection: Upgrade\r\n")
             append("Sec-WebSocket-Key: $key\r\n")
@@ -42,6 +47,12 @@ class NativeWebSocketClient(private val host: String, private val port: Int, pri
         }
         output!!.write(handshake.toByteArray(Charsets.UTF_8))
         output!!.flush()
+
+        val statusLine = reader!!.readLine()
+        if (statusLine?.contains("101") != true) {
+            close()
+            throw IllegalStateException("Realtime connection rejected.")
+        }
 
         // Consume HTTP 101 response headers.
         var line: String?

@@ -80,8 +80,8 @@ wipe, and the root/Frida/debugger detection heuristics actually firing against r
 - **App signature verification** needs your real release-signing cert's SHA-256 fingerprint
   passed to `DeviceIntegrity.verifySigningCertificate`. A cert fingerprint is public
   verification data, but it still must match the keystore used for your release APK.
-- **QR sharing** is disabled in the release UI until a real QR encoder/scanner is configured;
-  manual key entry remains available.
+- **QR sharing** is enabled with CameraX/ML Kit scanning and ZXing generation. Exchange QR
+  codes only in person with the intended contact.
 - **`AutoLockManager`/`FailedAttemptPolicy`** are complete, usable classes but not yet wired
   into `MainActivity`'s lifecycle callbacks or a PIN-entry screen — hook `onAppBackgrounded()`/
   `onScreenOff()` into your Activity's lifecycle and call `FailedAttemptPolicy.recordFailure()`

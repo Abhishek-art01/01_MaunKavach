@@ -1,6 +1,7 @@
 package com.maunkavach.data.db
 
 import android.content.ContentValues
+import android.database.sqlite.SQLiteDatabase
 import com.maunkavach.crypto.EncryptedMessagePackage
 import com.maunkavach.data.model.MessageDirection
 
@@ -12,7 +13,14 @@ import com.maunkavach.data.model.MessageDirection
  */
 class MessageDao(private val dbHelper: MaunKavachDbHelper) {
 
-    fun insert(pkg: EncryptedMessagePackage, contactId: String, direction: MessageDirection, isFile: Boolean = false, fileBlobUrl: String? = null) {
+    fun insert(
+        pkg: EncryptedMessagePackage,
+        contactId: String,
+        direction: MessageDirection,
+        isFile: Boolean = false,
+        fileBlobUrl: String? = null,
+        deliveryStatus: String = "SENT"
+    ) {
         val db = dbHelper.writableDatabase
         val values = ContentValues().apply {
             put("message_id", pkg.messageId)
@@ -29,8 +37,23 @@ class MessageDao(private val dbHelper: MaunKavachDbHelper) {
             put("is_file", if (isFile) 1 else 0)
             put("encrypted_file_blob_url", fileBlobUrl)
             put("timestamp", pkg.timestampMillis)
+            put("delivery_status", deliveryStatus)
         }
-        db.insertOrThrow("messages", null, values)
+        db.insertWithOnConflict("messages", null, values, SQLiteDatabase.CONFLICT_REPLACE)
+    }
+
+    fun deleteThread(contactId: String) {
+        dbHelper.writableDatabase.delete("messages", "contact_id = ?", arrayOf(contactId))
+    }
+
+    fun markThreadRead(contactId: String) {
+        val values = ContentValues().apply { put("delivery_status", "READ") }
+        dbHelper.writableDatabase.update(
+            "messages",
+            values,
+            "contact_id = ? AND direction = ?",
+            arrayOf(contactId, MessageDirection.RECEIVED.name)
+        )
     }
 
     /** Returns raw (still-encrypted, still-unverified) rows — caller runs them through MessagePipeline.decryptMessage. */

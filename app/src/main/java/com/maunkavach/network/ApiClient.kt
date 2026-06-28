@@ -6,6 +6,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
+import java.net.URLEncoder
 import javax.net.ssl.HttpsURLConnection
 
 data class AuthSession(
@@ -24,7 +25,8 @@ data class ServerMessageRow(
     val encryptedMetadata: String?,
     val hmacBase64: String,
     val keyVersion: Int,
-    val createdAt: String?
+    val createdAt: String?,
+    val deliveryStatus: String = "SENT"
 ) {
     fun toPackage(timestampMillis: Long = System.currentTimeMillis()): EncryptedMessagePackage =
         EncryptedMessagePackage(
@@ -84,6 +86,9 @@ object ApiClient {
         return postJson("/messages", body, token)
     }
 
+    fun deleteMessage(token: String, messageId: String): JSONObject =
+        requestJson("/messages/${urlEncode(messageId)}", "DELETE", token)
+
     fun fetchMessages(token: String, contactId: String): List<ServerMessageRow> {
         val response = getJson("/messages?with=${urlEncode(contactId)}", token)
         val rows = response.optJSONArray("rows") ?: JSONArray()
@@ -99,9 +104,27 @@ object ApiClient {
                 encryptedMetadata = row.optString("encrypted_metadata").takeIf { it.isNotBlank() && it != "null" },
                 hmacBase64 = row.getString("hmac_base64"),
                 keyVersion = row.optInt("key_version", 1),
-                createdAt = row.optString("created_at").takeIf { it.isNotBlank() }
+                createdAt = row.optString("created_at").takeIf { it.isNotBlank() },
+                deliveryStatus = row.optString("delivery_status", "SENT").ifBlank { "SENT" }
             )
         }
+    }
+
+    fun realtimeClient(token: String): NativeWebSocketClient {
+        val url = URL(baseUrl)
+        val useTls = url.protocol == "https"
+        val port = when {
+            url.port != -1 -> url.port
+            useTls -> 443
+            else -> 80
+        }
+        val basePath = url.path.takeIf { it.isNotBlank() }?.trimEnd('/') ?: ""
+        return NativeWebSocketClient(
+            host = url.host,
+            port = port,
+            path = "$basePath/ws?token=${URLEncoder.encode(token, Charsets.UTF_8.name())}",
+            useTls = useTls
+        )
     }
 
     /** Uploads a raw encrypted file blob. Metadata and original filename must already be encrypted. */
@@ -133,6 +156,11 @@ object ApiClient {
         return JSONObject(readResponse(conn))
     }
 
+    private fun requestJson(path: String, method: String, token: String): JSONObject {
+        val conn = open(path, method, token)
+        return JSONObject(readResponse(conn))
+    }
+
     private fun open(path: String, method: String, token: String?): HttpsURLConnection {
         val conn = URL(baseUrl + path).openConnection() as HttpsURLConnection
         conn.requestMethod = method
@@ -153,5 +181,5 @@ object ApiClient {
     }
 
     private fun urlEncode(value: String): String =
-        java.net.URLEncoder.encode(value, Charsets.UTF_8.name())
+        URLEncoder.encode(value, Charsets.UTF_8.name())
 }
